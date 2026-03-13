@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
-import { Users, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, X, RotateCcw } from 'lucide-react';
 import { passengerService } from '../services/passengerService';
 import toast from 'react-hot-toast';
 
@@ -15,6 +15,14 @@ export default function Passengers() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
+  const [filters, setFilters] = useState({
+    q: '',
+    status: 'all',
+    minMiles: '',
+    maxMiles: '',
+    hasMileCard: 'all',
+    sortBy: 'miles-desc'
+  });
 
   const load = () => {
     setLoading(true);
@@ -51,6 +59,44 @@ export default function Passengers() {
     return 'badge-green';
   };
 
+  const filteredPassengers = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    const minMiles = filters.minMiles === '' ? null : Number(filters.minMiles);
+    const maxMiles = filters.maxMiles === '' ? null : Number(filters.maxMiles);
+
+    let rows = passengers.filter((p) => {
+      const textOk = !q || [p.name, p.cc, p.mileCard, p.milesAccount?.number]
+        .some((v) => (v || '').toLowerCase().includes(q));
+      const statusOk = filters.status === 'all' || (p.status || '') === filters.status;
+      const hasCard = !!(p.mileCard || '').trim();
+      const cardOk = filters.hasMileCard === 'all' ? true : filters.hasMileCard === 'yes' ? hasCard : !hasCard;
+      const miles = Number(p.milesAccount?.flightMiles || 0);
+      const minOk = minMiles === null || miles >= minMiles;
+      const maxOk = maxMiles === null || miles <= maxMiles;
+      return textOk && statusOk && cardOk && minOk && maxOk;
+    });
+
+    rows = [...rows].sort((a, b) => {
+      const milesA = Number(a.milesAccount?.flightMiles || 0);
+      const milesB = Number(b.milesAccount?.flightMiles || 0);
+      if (filters.sortBy === 'miles-asc') return milesA - milesB;
+      if (filters.sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
+      if (filters.sortBy === 'name-desc') return (b.name || '').localeCompare(a.name || '');
+      return milesB - milesA;
+    });
+
+    return rows;
+  }, [passengers, filters]);
+
+  const resetFilters = () => setFilters({
+    q: '',
+    status: 'all',
+    minMiles: '',
+    maxMiles: '',
+    hasMileCard: 'all',
+    sortBy: 'miles-desc'
+  });
+
   return (
     <Layout title="Passengers" subtitle="Manage registered passengers">
       <div className="page-header">
@@ -63,13 +109,76 @@ export default function Passengers() {
 
       <div className="table-container">
         <div className="table-header"><span className="table-title">All Passengers</span></div>
+        <div className="filters-wrap">
+          <div className="filters-grid">
+            <input
+              className="filter-input"
+              placeholder="Search by name, CC, mile card..."
+              value={filters.q}
+              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+            />
+            <select
+              className="filter-select"
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            >
+              <option value="all">Status: All</option>
+              <option value="Bronze">Bronze</option>
+              <option value="Silver">Silver</option>
+              <option value="Gold">Gold</option>
+              <option value="Platinum">Platinum</option>
+            </select>
+            <select
+              className="filter-select"
+              value={filters.hasMileCard}
+              onChange={(e) => setFilters({ ...filters, hasMileCard: e.target.value })}
+            >
+              <option value="all">Mile card: All</option>
+              <option value="yes">With mile card</option>
+              <option value="no">Without mile card</option>
+            </select>
+            <input
+              className="filter-input"
+              type="number"
+              placeholder="Min miles"
+              value={filters.minMiles}
+              onChange={(e) => setFilters({ ...filters, minMiles: e.target.value })}
+            />
+            <input
+              className="filter-input"
+              type="number"
+              placeholder="Max miles"
+              value={filters.maxMiles}
+              onChange={(e) => setFilters({ ...filters, maxMiles: e.target.value })}
+            />
+            <select
+              className="filter-select"
+              value={filters.sortBy}
+              onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+            >
+              <option value="miles-desc">Sort: Miles high-low</option>
+              <option value="miles-asc">Sort: Miles low-high</option>
+              <option value="name-asc">Sort: Name A-Z</option>
+              <option value="name-desc">Sort: Name Z-A</option>
+            </select>
+            <button className="btn btn-secondary" onClick={resetFilters}>
+              <RotateCcw size={14} /> Reset
+            </button>
+          </div>
+          <div className="filters-meta">
+            <span className="filter-chip">Showing <strong>{filteredPassengers.length}</strong> / {passengers.length}</span>
+            {filters.status !== 'all' && <span className="filter-chip">Status: <strong>{filters.status}</strong></span>}
+          </div>
+        </div>
         {loading ? <div className="loading-screen"><div className="spinner" /></div> : (
           <table>
             <thead>
               <tr><th>ID</th><th>Name</th><th>CC</th><th>Mile Card</th><th>Status</th><th>Flight Miles</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {passengers.map(p => (
+              {filteredPassengers.length === 0 ? (
+                <tr><td colSpan={7}><div className="table-empty">No passenger matches your current filters.</div></td></tr>
+              ) : filteredPassengers.map(p => (
                 <tr key={p.id}>
                   <td>#{p.id}</td>
                   <td>{p.name}</td>

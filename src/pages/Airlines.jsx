@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
-import { Briefcase, Plus, Pencil, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Briefcase, Plus, Pencil, Trash2, X, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { airlineService } from '../services/airlineService';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,12 @@ export default function Airlines() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
+  const [filters, setFilters] = useState({
+    q: '',
+    short: '',
+    hasLogo: 'all',
+    sortBy: 'name-asc'
+  });
 
   const load = () => {
     setLoading(true);
@@ -23,6 +29,29 @@ export default function Airlines() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const filteredAirlines = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    const short = filters.short.trim().toLowerCase();
+
+    let rows = airlines.filter((a) => {
+      const textOk = !q || [a.name, a.shortName].some((v) => (v || '').toLowerCase().includes(q));
+      const shortOk = !short || (a.shortName || '').toLowerCase().includes(short);
+      const logoOk = filters.hasLogo === 'all' ? true : filters.hasLogo === 'yes' ? !!a.logo : !a.logo;
+      return textOk && shortOk && logoOk;
+    });
+
+    rows = [...rows].sort((a, b) => {
+      if (filters.sortBy === 'name-desc') return (b.name || '').localeCompare(a.name || '');
+      if (filters.sortBy === 'id-asc') return (a.id || 0) - (b.id || 0);
+      if (filters.sortBy === 'id-desc') return (b.id || 0) - (a.id || 0);
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    return rows;
+  }, [airlines, filters]);
+
+  const resetFilters = () => setFilters({ q: '', short: '', hasLogo: 'all', sortBy: 'name-asc' });
 
   const openCreate = () => { setForm(emptyForm); setEditId(null); setShowModal(true); };
   const openEdit = (a) => { setForm({ name: a.name, shortName: a.shortName, logo: a.logo }); setEditId(a.id); setShowModal(true); };
@@ -71,6 +100,49 @@ export default function Airlines() {
         <div className="table-header">
           <span className="table-title">All Airlines</span>
         </div>
+        <div className="filters-wrap">
+          <div className="filters-grid">
+            <input
+              className="filter-input"
+              placeholder="Search by airline name or short name..."
+              value={filters.q}
+              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+            />
+            <input
+              className="filter-input"
+              placeholder="Short name contains..."
+              value={filters.short}
+              onChange={(e) => setFilters({ ...filters, short: e.target.value })}
+            />
+            <select
+              className="filter-select"
+              value={filters.hasLogo}
+              onChange={(e) => setFilters({ ...filters, hasLogo: e.target.value })}
+            >
+              <option value="all">Logo: All</option>
+              <option value="yes">With logo</option>
+              <option value="no">Without logo</option>
+            </select>
+            <select
+              className="filter-select"
+              value={filters.sortBy}
+              onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+            >
+              <option value="name-asc">Sort: Name A-Z</option>
+              <option value="name-desc">Sort: Name Z-A</option>
+              <option value="id-asc">Sort: ID asc</option>
+              <option value="id-desc">Sort: ID desc</option>
+            </select>
+            <button className="btn btn-secondary" onClick={resetFilters}>
+              <RotateCcw size={14} /> Reset
+            </button>
+          </div>
+          <div className="filters-meta">
+            <span className="filter-chip">Showing <strong>{filteredAirlines.length}</strong> / {airlines.length}</span>
+            {filters.q && <span className="filter-chip">Query: <strong>{filters.q}</strong></span>}
+            {filters.hasLogo !== 'all' && <span className="filter-chip">Logo: <strong>{filters.hasLogo}</strong></span>}
+          </div>
+        </div>
         {loading ? (
           <div className="loading-screen"><div className="spinner" /></div>
         ) : (
@@ -81,14 +153,14 @@ export default function Airlines() {
               </tr>
             </thead>
             <tbody>
-              {airlines.length === 0 ? (
+              {filteredAirlines.length === 0 ? (
                 <tr><td colSpan={5}>
                   <div className="empty-state">
                     <Briefcase size={32} />
-                    <p>No airlines yet. Add your first one!</p>
+                    <p>{airlines.length === 0 ? 'No airlines yet. Add your first one!' : 'No airline matches your filters.'}</p>
                   </div>
                 </td></tr>
-              ) : airlines.map(a => (
+              ) : filteredAirlines.map(a => (
                 <tr key={a.id}>
                   <td>#{a.id}</td>
                   <td>
