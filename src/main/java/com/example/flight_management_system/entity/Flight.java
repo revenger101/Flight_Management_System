@@ -1,5 +1,6 @@
 package com.example.flight_management_system.entity;
 
+import com.example.flight_management_system.entity.enums.FlightStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,8 +18,19 @@ public class Flight {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     private LocalTime time;
     private int miles;
+    private int seatCapacity;
+    private int overbookingLimit;
+    private boolean waitlistEnabled;
+    private Integer currentGate;
+    private int delayMinutes;
+
+    @Enumerated(EnumType.STRING)
+    private FlightStatus status;
 
 
     @OneToMany(cascade = CascadeType.ALL)
@@ -56,4 +68,9 @@ public class Flight {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Booking> bookings;
+
+    @OneToMany(mappedBy = "flight")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<NotificationEvent> notificationEvents;
 }

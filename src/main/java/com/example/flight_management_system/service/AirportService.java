@@ -3,16 +3,21 @@ package com.example.flight_management_system.service;
 import com.example.flight_management_system.dto.AirportDTO;
 import com.example.flight_management_system.entity.Airline;
 import com.example.flight_management_system.entity.Airport;
+import com.example.flight_management_system.exception.NotFoundException;
 import com.example.flight_management_system.repository.AirlineRepository;
 import com.example.flight_management_system.repository.AirportRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AirportService {
 
     private final AirportRepository airportRepository;
@@ -33,7 +38,7 @@ public class AirportService {
         Airline airline = null;
         if (dto.getAirlineId() != null) {
             airline = airlineRepository.findById(dto.getAirlineId())
-                    .orElseThrow(() -> new RuntimeException("Airline not found with id: " + dto.getAirlineId()));
+                    .orElseThrow(() -> new NotFoundException("Airline not found with id: " + dto.getAirlineId()));
         }
         return Airport.builder()
                 .name(dto.getName())
@@ -52,28 +57,37 @@ public class AirportService {
 
     public AirportDTO findById(Long id) {
         return toDTO(airportRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Airport not found with id: " + id)));
+                .orElseThrow(() -> new NotFoundException("Airport not found with id: " + id)));
     }
 
+    public Page<AirportDTO> search(String country, String name, Long airlineId, Pageable pageable) {
+        String normalizedCountry = country == null || country.isBlank() ? null : country.trim();
+        String normalizedName = name == null || name.isBlank() ? null : name.trim();
+        return airportRepository.search(normalizedCountry, normalizedName, airlineId, pageable).map(this::toDTO);
+    }
+
+    @Transactional
     public AirportDTO create(AirportDTO dto) {
         return toDTO(airportRepository.save(toEntity(dto)));
     }
 
+    @Transactional
     public AirportDTO update(Long id, AirportDTO dto) {
         Airport existing = airportRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Airport not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("Airport not found with id: " + id));
         existing.setName(dto.getName());
         existing.setShortName(dto.getShortName());
         existing.setCountry(dto.getCountry());
         existing.setFee(dto.getFee());
         if (dto.getAirlineId() != null) {
             Airline airline = airlineRepository.findById(dto.getAirlineId())
-                    .orElseThrow(() -> new RuntimeException("Airline not found"));
+                    .orElseThrow(() -> new NotFoundException("Airline not found"));
             existing.setAirline(airline);
         }
         return toDTO(airportRepository.save(existing));
     }
 
+    @Transactional
     public void delete(Long id) {
         airportRepository.deleteById(id);
     }

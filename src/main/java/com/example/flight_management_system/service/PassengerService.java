@@ -4,15 +4,20 @@ import com.example.flight_management_system.dto.MilesAccountDTO;
 import com.example.flight_management_system.dto.PassengerDTO;
 import com.example.flight_management_system.entity.MilesAccount;
 import com.example.flight_management_system.entity.Passenger;
+import com.example.flight_management_system.exception.NotFoundException;
 import com.example.flight_management_system.repository.PassengerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PassengerService {
 
     private final PassengerRepository passengerRepository;
@@ -44,9 +49,16 @@ public class PassengerService {
 
     public PassengerDTO findById(Long id) {
         return toDTO(passengerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Passenger not found with id: " + id)));
+                .orElseThrow(() -> new NotFoundException("Passenger not found with id: " + id)));
     }
 
+    public Page<PassengerDTO> search(String name, String status, Pageable pageable) {
+        String normalizedName = name == null || name.isBlank() ? null : name.trim();
+        String normalizedStatus = status == null || status.isBlank() ? null : status.trim();
+        return passengerRepository.search(normalizedName, normalizedStatus, pageable).map(this::toDTO);
+    }
+
+    @Transactional
     public PassengerDTO create(PassengerDTO dto) {
         MilesAccount miles = null;
         if (dto.getMilesAccount() != null) {
@@ -66,9 +78,10 @@ public class PassengerService {
         return toDTO(passengerRepository.save(passenger));
     }
 
+    @Transactional
     public PassengerDTO update(Long id, PassengerDTO dto) {
         Passenger existing = passengerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Passenger not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("Passenger not found with id: " + id));
         existing.setName(dto.getName());
         existing.setCc(dto.getCc());
         existing.setMileCard(dto.getMileCard());
@@ -76,6 +89,7 @@ public class PassengerService {
         return toDTO(passengerRepository.save(existing));
     }
 
+    @Transactional
     public void delete(Long id) {
         passengerRepository.deleteById(id);
     }

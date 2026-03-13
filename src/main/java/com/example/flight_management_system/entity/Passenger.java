@@ -31,4 +31,14 @@ public class Passenger {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Booking> bookings;
+
+    @OneToMany(mappedBy = "passenger", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<LoyaltyLedger> loyaltyLedgers;
+
+    @OneToMany(mappedBy = "passenger", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<NotificationEvent> notificationEvents;
 }

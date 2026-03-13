@@ -31,21 +31,21 @@ INSERT INTO airport (id, short_name, name, country, fee, airline_id) VALUES (8, 
 -- 3. FLIGHTS
 -- =====================
 -- Direct flights
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (1, '08:30:00', 1200, 1, 2);   -- CMN -> CDG
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (2, '14:00:00', 3100, 2, 3);   -- CDG -> DXB
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (3, '06:15:00', 2800, 1, 4);   -- CMN -> IST
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (4, '10:45:00', 4200, 4, 3);   -- IST -> DXB
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (5, '16:30:00', 1500, 3, 5);   -- DXB -> DOH
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (6, '09:00:00', 600, 2, 6);    -- CDG -> FRA
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (7, '12:00:00', 220, 6, 7);    -- FRA -> LHR
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (8, '07:45:00', 300, 8, 1);    -- RAK -> CMN
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (9, '18:00:00', 1800, 7, 4);   -- LHR -> IST
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (10, '20:30:00', 3500, 5, 7);  -- DOH -> LHR
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (11, '11:15:00', 2500, 1, 3);  -- CMN -> DXB
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (12, '22:00:00', 950, 4, 6);   -- IST -> FRA
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (13, '05:30:00', 1100, 7, 2);  -- LHR -> CDG
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (14, '15:00:00', 400, 8, 2);   -- RAK -> CDG
-INSERT INTO flight (id, time, miles, departure_airport_id, arrival_airport_id) VALUES (15, '19:30:00', 2700, 6, 5);  -- FRA -> DOH
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (1, '08:30:00', 1200, 180, 12, true, 12, 0, 'SCHEDULED', 1, 2);   -- CMN -> CDG
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (2, '14:00:00', 3100, 240, 15, true, 5, 0, 'SCHEDULED', 2, 3);   -- CDG -> DXB
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (3, '06:15:00', 2800, 200, 12, true, 8, 0, 'SCHEDULED', 1, 4);   -- CMN -> IST
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (4, '10:45:00', 4200, 260, 18, true, 22, 0, 'SCHEDULED', 4, 3);   -- IST -> DXB
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (5, '16:30:00', 1500, 170, 10, true, 3, 0, 'SCHEDULED', 3, 5);   -- DXB -> DOH
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (6, '09:00:00', 600, 160, 8, true, 14, 0, 'SCHEDULED', 2, 6);    -- CDG -> FRA
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (7, '12:00:00', 220, 150, 8, true, 7, 0, 'SCHEDULED', 6, 7);    -- FRA -> LHR
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (8, '07:45:00', 300, 150, 6, true, 1, 0, 'SCHEDULED', 8, 1);    -- RAK -> CMN
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (9, '18:00:00', 1800, 190, 12, true, 18, 0, 'SCHEDULED', 7, 4);   -- LHR -> IST
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (10, '20:30:00', 3500, 260, 20, true, 9, 0, 'SCHEDULED', 5, 7);  -- DOH -> LHR
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (11, '11:15:00', 2500, 210, 12, true, 11, 0, 'SCHEDULED', 1, 3);  -- CMN -> DXB
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (12, '22:00:00', 950, 165, 8, true, 6, 0, 'SCHEDULED', 4, 6);   -- IST -> FRA
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (13, '05:30:00', 1100, 175, 10, true, 15, 0, 'SCHEDULED', 7, 2);  -- LHR -> CDG
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (14, '15:00:00', 400, 150, 6, true, 2, 0, 'SCHEDULED', 8, 2);   -- RAK -> CDG
+INSERT INTO flight (id, time, miles, seat_capacity, overbooking_limit, waitlist_enabled, current_gate, delay_minutes, status, departure_airport_id, arrival_airport_id) VALUES (15, '19:30:00', 2700, 220, 14, true, 20, 0, 'SCHEDULED', 6, 5);  -- FRA -> DOH
 
 -- =====================
 -- 4. CONNECTING FLIGHTS (Many-to-Many self-reference)
@@ -128,41 +128,41 @@ INSERT INTO passenger (id, name, cc, mile_card, status, miles_account_id) VALUES
 -- 8. BOOKINGS
 -- =====================
 -- Ahmed Benali bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (1, 'One-way', '2026-03-15', 'BUSINESS', 1, 1);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (2, 'Connecting', '2026-03-15', 'BUSINESS', 1, 2);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (1, 'One-way', '2026-03-15', 'BUSINESS', 'CONFIRMED', 1, 1);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (2, 'Connecting', '2026-03-15', 'BUSINESS', 'CONFIRMED', 1, 2);
 
 -- Sofia Martinez bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (3, 'One-way', '2026-03-15', 'ECONOMIC', 2, 3);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (3, 'One-way', '2026-03-15', 'ECONOMIC', 'CONFIRMED', 2, 3);
 
 -- Yuki Tanaka bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (4, 'Round-trip', '2026-03-16', 'BUSINESS', 3, 5);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (5, 'Round-trip', '2026-03-17', 'BUSINESS', 3, 10);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (4, 'Round-trip', '2026-03-16', 'BUSINESS', 'CONFIRMED', 3, 5);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (5, 'Round-trip', '2026-03-17', 'BUSINESS', 'CONFIRMED', 3, 10);
 
 -- Omar El Fassi bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (6, 'One-way', '2026-03-16', 'ECONOMIC', 4, 6);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (7, 'Connecting', '2026-03-16', 'ECONOMIC', 4, 7);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (6, 'One-way', '2026-03-16', 'ECONOMIC', 'CONFIRMED', 4, 6);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (7, 'Connecting', '2026-03-16', 'ECONOMIC', 'CONFIRMED', 4, 7);
 
 -- Emma Thompson bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (8, 'One-way', '2026-03-17', 'BUSINESS', 5, 9);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (9, 'Connecting', '2026-03-17', 'BUSINESS', 5, 4);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (8, 'One-way', '2026-03-17', 'BUSINESS', 'CONFIRMED', 5, 9);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (9, 'Connecting', '2026-03-17', 'BUSINESS', 'CONFIRMED', 5, 4);
 
 -- Karim Zidane bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (10, 'One-way', '2026-03-17', 'ECONOMIC', 6, 11);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (10, 'One-way', '2026-03-17', 'ECONOMIC', 'CONFIRMED', 6, 11);
 
 -- Laura Schmidt bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (11, 'Round-trip', '2026-03-18', 'BUSINESS', 7, 13);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (12, 'Round-trip', '2026-03-19', 'BUSINESS', 7, 1);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (11, 'Round-trip', '2026-03-18', 'BUSINESS', 'CONFIRMED', 7, 13);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (12, 'Round-trip', '2026-03-19', 'BUSINESS', 'CONFIRMED', 7, 1);
 
 -- Ali Hassan bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (13, 'One-way', '2026-03-16', 'ECONOMIC', 8, 8);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (13, 'One-way', '2026-03-16', 'ECONOMIC', 'CONFIRMED', 8, 8);
 
 -- Marie Dupont bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (14, 'One-way', '2026-03-18', 'BUSINESS', 9, 14);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (15, 'Connecting', '2026-03-18', 'BUSINESS', 9, 2);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (14, 'One-way', '2026-03-18', 'BUSINESS', 'CONFIRMED', 9, 14);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (15, 'Connecting', '2026-03-18', 'BUSINESS', 'CONFIRMED', 9, 2);
 
 -- James Wilson bookings
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (16, 'Round-trip', '2026-03-19', 'BUSINESS', 10, 15);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (17, 'Round-trip', '2026-03-20', 'BUSINESS', 10, 10);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (18, 'One-way', '2026-03-20', 'ECONOMIC', 6, 1);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (19, 'One-way', '2026-03-20', 'ECONOMIC', 2, 14);
-INSERT INTO booking (id, kind, date, type, passenger_id, flight_id) VALUES (20, 'One-way', '2026-03-21', 'BUSINESS', 1, 11);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (16, 'Round-trip', '2026-03-19', 'BUSINESS', 'CONFIRMED', 10, 15);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (17, 'Round-trip', '2026-03-20', 'BUSINESS', 'CONFIRMED', 10, 10);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (18, 'One-way', '2026-03-20', 'ECONOMIC', 'CONFIRMED', 6, 1);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (19, 'One-way', '2026-03-20', 'ECONOMIC', 'CONFIRMED', 2, 14);
+INSERT INTO booking (id, kind, date, type, status, passenger_id, flight_id) VALUES (20, 'One-way', '2026-03-21', 'BUSINESS', 'CONFIRMED', 1, 11);
