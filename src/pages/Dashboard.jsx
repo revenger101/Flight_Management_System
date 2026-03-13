@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
-import { Plane, Building2, Users, BookOpen, Briefcase, TrendingUp, Activity, BarChart3, Route, PieChart as PieChartIcon, Clock3 } from 'lucide-react';
+import { Plane, Building2, Users, BookOpen, Briefcase, TrendingUp, Activity, BarChart3, Route, PieChart as PieChartIcon, Clock3, Rocket, ShieldCheck, Zap, FileDown } from 'lucide-react';
 import {
   ResponsiveContainer,
   PieChart,
@@ -17,48 +17,36 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import { airlineService } from '../services/airlineService';
-import { airportService } from '../services/airportService';
-import { flightService } from '../services/flightService';
-import { passengerService } from '../services/passengerService';
-import { bookingService } from '../services/bookingService';
+import toast from 'react-hot-toast';
+import { exportDashboardSnapshotPdf } from '../utils/exportUtils';
+import { withOpsAndCapacity } from '../utils/flightOpsStore';
+import { useDashboardQuery } from '../hooks/queries';
+import TableSkeleton from '../components/TableSkeleton';
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ airlines: 0, airports: 0, flights: 0, passengers: 0, bookings: 0 });
-  const [airports, setAirports] = useState([]);
-  const [flights, setFlights] = useState([]);
-  const [passengers, setPassengers] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [recentBookings, setRecentBookings] = useState([]);
+  const reportRef = useRef(null);
+  const { data, isLoading: loading } = useDashboardQuery();
 
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      airlineService.getAll(),
-      airportService.getAll(),
-      flightService.getAll(),
-      passengerService.getAll(),
-      bookingService.getAll(),
-    ]).then(([al, ap, fl, pa, bo]) => {
-      setAirports(ap.data);
-      setFlights(fl.data);
-      setPassengers(pa.data);
-      setBookings(bo.data);
-      setStats({
-        airlines: al.data.length,
-        airports: ap.data.length,
-        flights: fl.data.length,
-        passengers: pa.data.length,
-        bookings: bo.data.length,
-      });
-      setRecentBookings(
-        [...bo.data]
-          .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || 0) - (a.id || 0))
-          .slice(0, 7)
-      );
-    }).catch(console.error).finally(() => setLoading(false));
-  }, []);
+  const airlines = data?.airlines || [];
+  const airports = data?.airports || [];
+  const flights = data?.flights || [];
+  const passengers = data?.passengers || [];
+  const bookings = data?.bookings || [];
+
+  const stats = useMemo(() => ({
+    airlines: airlines.length,
+    airports: airports.length,
+    flights: flights.length,
+    passengers: passengers.length,
+    bookings: bookings.length,
+  }), [airlines.length, airports.length, bookings.length, flights.length, passengers.length]);
+
+  const recentBookings = useMemo(
+    () => [...bookings]
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || 0) - (a.id || 0))
+      .slice(0, 7),
+    [bookings]
+  );
 
   const airportById = useMemo(() => {
     const m = new Map();
@@ -71,6 +59,8 @@ export default function Dashboard() {
     flights.forEach((f) => m.set(f.id, f));
     return m;
   }, [flights]);
+
+  const flightsWithOps = useMemo(() => withOpsAndCapacity(flights, bookings), [flights, bookings]);
 
   const passengerById = useMemo(() => {
     const m = new Map();
@@ -145,6 +135,16 @@ export default function Dashboard() {
     [topRoutes]
   );
 
+  const occupancyChartData = useMemo(() => {
+    return [...flightsWithOps]
+      .sort((a, b) => Number(b.occupancyPct || 0) - Number(a.occupancyPct || 0))
+      .slice(0, 6)
+      .map((f) => ({
+        flight: `#${f.id}`,
+        occupancy: Number(f.occupancyPct || 0),
+      }));
+  }, [flightsWithOps]);
+
   const operationalKpi = useMemo(() => {
     const totalMiles = bookings.reduce((sum, b) => sum + Number(flightById.get(b.flightId)?.miles || 0), 0);
     const avgMiles = bookings.length ? Math.round(totalMiles / bookings.length) : 0;
@@ -154,8 +154,31 @@ export default function Dashboard() {
     return { avgMiles, activeAirports };
   }, [bookings, flights, flightById]);
 
+  const handleExportDashboardPdf = async () => {
+    if (!reportRef.current) return;
+    try {
+      await exportDashboardSnapshotPdf('airport-dashboard-report', reportRef.current, {
+        flights: stats.flights,
+        bookings: stats.bookings,
+        passengers: stats.passengers,
+      });
+      toast.success('Dashboard PDF downloaded');
+    } catch {
+      toast.error('Failed to export dashboard PDF');
+    }
+  };
+
   return (
     <Layout title="Dashboard" subtitle="Overview of your flight management system">
+      <div className="page-header" style={{ marginBottom: 16 }}>
+        <div>
+          <h1 className="page-title">Executive Dashboard</h1>
+          <p className="page-subtitle">Performance, trends, and operations in one glance</p>
+        </div>
+        <button className="btn btn-primary" onClick={handleExportDashboardPdf}><FileDown size={15} /> Download PDF Report</button>
+      </div>
+
+      <div ref={reportRef}>
       <div className="welcome-banner">
         <h1>Welcome back to <span className="gold-text">AirPort</span> ✈</h1>
         <p>Here's a live overview of your entire flight management system.</p>
@@ -183,7 +206,7 @@ export default function Dashboard() {
 
       {loading ? (
         <div className="table-container">
-          <div className="loading-screen"><div className="spinner" /></div>
+          <TableSkeleton rows={10} cols={7} />
         </div>
       ) : (
         <>
@@ -275,23 +298,19 @@ export default function Dashboard() {
               </div>
             </div>
 
+            
+
             <div className="analytics-card">
               <div className="analytics-card-header">
-                <span className="analytics-title"><TrendingUp size={16} /> 6-Month Booking Trend</span>
-                <span className="analytics-sub">Monthly volume</span>
+                <span className="analytics-title"><Plane size={16} /> Seat Occupancy</span>
+                <span className="analytics-sub">Top loaded flights</span>
               </div>
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={bookingsByMonth} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="bookingGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#c9a84c" stopOpacity={0.45} />
-                        <stop offset="95%" stopColor="#c9a84c" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
+                  <BarChart data={occupancyChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e2d45" />
-                    <XAxis dataKey="label" tick={{ fill: '#8899bb', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#8899bb', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <XAxis dataKey="flight" tick={{ fill: '#8899bb', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#8899bb', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} domain={[0, 100]} />
                     <Tooltip
                       contentStyle={{
                         background: '#0d1420',
@@ -299,10 +318,10 @@ export default function Dashboard() {
                         borderRadius: 10,
                         color: '#f0f4ff',
                       }}
-                      formatter={(value) => [value, 'Bookings']}
+                      formatter={(value) => [`${value}%`, 'Occupancy']}
                     />
-                    <Area type="monotone" dataKey="value" stroke="#e8c96a" strokeWidth={2.5} fill="url(#bookingGradient)" />
-                  </AreaChart>
+                    <Bar dataKey="occupancy" fill="#22d3ee" radius={[6, 6, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -312,10 +331,10 @@ export default function Dashboard() {
                 <span className="analytics-title"><Route size={16} /> Top Routes</span>
                 <span className="analytics-sub">Most booked lanes</span>
               </div>
-              {topRoutesChartData.length === 0 ? (
-                <div className="table-empty" style={{ padding: '10px 0' }}>No route data yet</div>
-              ) : (
-                <div className="chart-shell">
+              <div className="chart-shell top-routes-chart-shell">
+                {topRoutesChartData.length === 0 ? (
+                  <div className="table-empty" style={{ padding: '10px 0' }}>No route data yet</div>
+                ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={topRoutesChartData} layout="vertical" margin={{ top: 8, right: 8, left: 12, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e2d45" />
@@ -333,8 +352,37 @@ export default function Dashboard() {
                       <Bar dataKey="bookings" radius={[0, 6, 6, 0]} fill="#3b82f6" />
                     </BarChart>
                   </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <div className="analytics-card">
+              <div className="platform-spotlight">
+                <span className="platform-badge">AirPort Platform</span>
+                <h4>Operate smarter with one unified cockpit</h4>
+                <p>
+                  Track routes, bookings, passengers, and performance from a single operational workspace.
+                </p>
+                <div className="platform-features">
+                  <span><Rocket size={13} /> Fast workflows</span>
+                  <span><ShieldCheck size={13} /> Reliable operations</span>
+                  <span><Zap size={13} /> Live business insights</span>
                 </div>
-              )}
+                <div className="platform-kpi-strip">
+                  <div>
+                    <strong>15</strong>
+                    <small>Flights</small>
+                  </div>
+                  <div>
+                    <strong>20</strong>
+                    <small>Bookings</small>
+                  </div>
+                  <div>
+                    <strong>10</strong>
+                    <small>Passengers</small>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -382,6 +430,7 @@ export default function Dashboard() {
           </div>
         </>
       )}
+      </div>
     </Layout>
   );
 }

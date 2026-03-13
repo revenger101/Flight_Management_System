@@ -1,3 +1,5 @@
+import NotificationsCenter from './NotificationsCenter';
+
 export default function Navbar({ title, subtitle }) {
   const now = new Date();
   const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -10,6 +12,8 @@ export default function Navbar({ title, subtitle }) {
         {subtitle && <p>{subtitle}</p>}
       </div>
       <div className="navbar-right">
+        <NotificationsCenter />
+        <span className="command-kbd" title="Open global search">Ctrl K</span>
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{date} · {time}</span>
       </div>
     </header>

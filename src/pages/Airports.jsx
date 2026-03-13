@@ -1,39 +1,55 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Layout from '../components/Layout';
-import { Building2, Plus, Pencil, Trash2, X, RotateCcw } from 'lucide-react';
+import { Building2, Plus, Pencil, Trash2, X, RotateCcw, FileSpreadsheet, FileDown, Download } from 'lucide-react';
 import { airportService } from '../services/airportService';
-import { airlineService } from '../services/airlineService';
 import toast from 'react-hot-toast';
+import { usePagination } from '../hooks/usePagination';
+import PaginationControls from '../components/PaginationControls';
+import { exportTablePdf, exportToCsv, exportToExcel } from '../utils/exportUtils';
+import { useAirlinesQuery, useAirportsQuery } from '../hooks/queries';
+import { useFilterPresets } from '../hooks/useFilterPresets';
+import { usePageShortcuts } from '../hooks/usePageShortcuts';
+import TableSkeleton from '../components/TableSkeleton';
+import EmptyState from '../components/EmptyState';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const emptyForm = { name: '', shortName: '', country: '', fee: '', airlineId: '' };
+const defaultFilters = {
+  q: '',
+  country: '',
+  airlineId: 'all',
+  minFee: '',
+  maxFee: '',
+  sortBy: 'name-asc'
+};
 
 export default function Airports() {
-  const [airports, setAirports] = useState([]);
-  const [airlines, setAirlines] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: airports = [], isLoading: loadingAirports, refetch } = useAirportsQuery();
+  const { data: airlines = [], isLoading: loadingAirlines } = useAirlinesQuery();
+  const loading = loadingAirports || loadingAirlines;
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
-  const [filters, setFilters] = useState({
-    q: '',
-    country: '',
-    airlineId: 'all',
-    minFee: '',
-    maxFee: '',
-    sortBy: 'name-asc'
-  });
-
-  const load = () => {
-    setLoading(true);
-    Promise.all([airportService.getAll(), airlineService.getAll()])
-      .then(([ap, al]) => { setAirports(ap.data); setAirlines(al.data); })
-      .catch(() => toast.error('Failed to load'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { load(); }, []);
+  const [presetName, setPresetName] = useState('');
+  const searchInputRef = useRef(null);
+  const {
+    filters,
+    setFilters,
+    resetFilters,
+    presets,
+    savePreset,
+    applyPreset,
+  } = useFilterPresets('airports', defaultFilters);
 
   const openCreate = () => { setForm(emptyForm); setEditId(null); setShowModal(true); };
+
+  usePageShortcuts({
+    onCreate: openCreate,
+    onSearch: () => searchInputRef.current?.focus(),
+    onCloseModal: () => setShowModal(false),
+    modalOpen: showModal,
+  });
+
   const openEdit = (a) => {
     setForm({ name: a.name, shortName: a.shortName, country: a.country, fee: a.fee, airlineId: a.airlineId || '' });
     setEditId(a.id); setShowModal(true);
@@ -45,14 +61,14 @@ export default function Airports() {
       const payload = { ...form, fee: parseFloat(form.fee) || 0, airlineId: form.airlineId || null };
       if (editId) { await airportService.update(editId, payload); toast.success('Airport updated!'); }
       else { await airportService.create(payload); toast.success('Airport created!'); }
-      setShowModal(false); load();
-    } catch { toast.error('Operation failed'); }
+      setShowModal(false); refetch();
+    } catch (error) { toast.error(getErrorMessage(error, 'Operation failed')); }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this airport?')) return;
-    try { await airportService.delete(id); toast.success('Deleted'); load(); }
-    catch { toast.error('Delete failed'); }
+    try { await airportService.delete(id); toast.success('Deleted'); refetch(); }
+    catch (error) { toast.error(getErrorMessage(error, 'Delete failed')); }
   };
 
   const getAirlineName = (id) => airlines.find(a => a.id === id)?.name || '—';
@@ -84,7 +100,26 @@ export default function Airports() {
     return rows;
   }, [airports, filters]);
 
-  const resetFilters = () => setFilters({ q: '', country: '', airlineId: 'all', minFee: '', maxFee: '', sortBy: 'name-asc' });
+  const {
+    page,
+    pageSize,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    paginatedItems,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredAirports, 10);
+
+  const exportRows = filteredAirports.map((a) => ({
+    ID: a.id,
+    Name: a.name,
+    Code: a.shortName,
+    Country: a.country,
+    Fee: a.fee,
+    Airline: getAirlineName(a.airlineId),
+  }));
 
   return (
     <Layout title="Airports" subtitle="Manage airport facilities">
@@ -97,10 +132,18 @@ export default function Airports() {
       </div>
 
       <div className="table-container">
-        <div className="table-header"><span className="table-title">All Airports</span></div>
+        <div className="table-header">
+          <span className="table-title">All Airports</span>
+          <div className="table-tools">
+            <button className="btn btn-secondary btn-sm" onClick={() => exportToCsv('airports', exportRows)}><Download size={13} /> CSV</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => exportToExcel('airports', exportRows, 'Airports')}><FileSpreadsheet size={13} /> Excel</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => exportTablePdf('airports', 'Airports Report', exportRows)}><FileDown size={13} /> PDF</button>
+          </div>
+        </div>
         <div className="filters-wrap">
           <div className="filters-grid">
             <input
+              ref={searchInputRef}
               className="filter-input"
               placeholder="Search name, code, country..."
               value={filters.q}
@@ -154,16 +197,48 @@ export default function Airports() {
             <span className="filter-chip">Showing <strong>{filteredAirports.length}</strong> / {airports.length}</span>
             {filters.airlineId !== 'all' && <span className="filter-chip">Airline filter active</span>}
           </div>
+          <div className="filter-presets">
+            <input
+              className="filter-input"
+              placeholder="Preset name"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+            />
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                const saved = savePreset(presetName);
+                if (saved.ok) {
+                  toast.success('Preset saved');
+                  setPresetName('');
+                } else {
+                  toast.error(saved.reason);
+                }
+              }}
+            >Save Preset</button>
+            <select className="filter-select" defaultValue="" onChange={(e) => e.target.value && applyPreset(e.target.value)}>
+              <option value="">Apply preset</option>
+              {presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
         </div>
-        {loading ? <div className="loading-screen"><div className="spinner" /></div> : (
+        {loading ? <TableSkeleton rows={8} cols={7} /> : (
           <table>
             <thead>
               <tr><th>ID</th><th>Name</th><th>Code</th><th>Country</th><th>Fee</th><th>Airline</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {filteredAirports.length === 0 ? (
-                <tr><td colSpan={7}><div className="table-empty">No airport matches your current filters.</div></td></tr>
-              ) : filteredAirports.map(a => (
+                <tr><td colSpan={7}>
+                  <EmptyState
+                    icon={<Building2 size={32} />}
+                    title={airports.length === 0 ? 'No airports yet' : 'No airport matches your filters'}
+                    description={airports.length === 0 ? 'Create your first airport to start adding routes.' : 'Try changing filters or add a new airport.'}
+                    ctaLabel={airports.length === 0 ? 'Create Airport' : 'Reset Filters'}
+                    onCta={airports.length === 0 ? openCreate : resetFilters}
+                  />
+                </td></tr>
+              ) : paginatedItems.map(a => (
                 <tr key={a.id}>
                   <td>#{a.id}</td>
                   <td>{a.name}</td>
@@ -182,6 +257,16 @@ export default function Airports() {
             </tbody>
           </table>
         )}
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       </div>
 
       {showModal && (

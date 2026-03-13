@@ -1,6 +1,7 @@
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import { Toaster } from 'react-hot-toast';
+import GlobalCommandBar from './GlobalCommandBar';
 
 export default function Layout({ children, title, subtitle }) {
   return (
@@ -23,6 +24,7 @@ export default function Layout({ children, title, subtitle }) {
           success: { iconTheme: { primary: '#c9a84c', secondary: '#1a2438' } },
         }}
       />
+      <GlobalCommandBar />
     </div>
   );
 }

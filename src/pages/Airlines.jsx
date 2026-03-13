@@ -1,34 +1,43 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
-import { Briefcase, Plus, Pencil, Trash2, X, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { Briefcase, Plus, Pencil, Trash2, X, Image as ImageIcon, RotateCcw, FileSpreadsheet, FileDown, Download } from 'lucide-react';
 import { airlineService } from '../services/airlineService';
 import toast from 'react-hot-toast';
+import { usePagination } from '../hooks/usePagination';
+import PaginationControls from '../components/PaginationControls';
+import { exportTablePdf, exportToCsv, exportToExcel } from '../utils/exportUtils';
+import { useAirlinesQuery } from '../hooks/queries';
+import { useFilterPresets } from '../hooks/useFilterPresets';
+import { usePageShortcuts } from '../hooks/usePageShortcuts';
+import TableSkeleton from '../components/TableSkeleton';
+import EmptyState from '../components/EmptyState';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const emptyForm = { name: '', shortName: '', logo: '' };
+const defaultFilters = {
+  q: '',
+  short: '',
+  hasLogo: 'all',
+  sortBy: 'name-asc'
+};
 
 export default function Airlines() {
-  const [airlines, setAirlines] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: airlines = [], isLoading: loading, refetch } = useAirlinesQuery();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
-  const [filters, setFilters] = useState({
-    q: '',
-    short: '',
-    hasLogo: 'all',
-    sortBy: 'name-asc'
-  });
-
-  const load = () => {
-    setLoading(true);
-    airlineService.getAll()
-      .then(r => setAirlines(r.data))
-      .catch(() => toast.error('Failed to load airlines'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { load(); }, []);
+  const [presetName, setPresetName] = useState('');
+  const searchInputRef = useRef(null);
+  const {
+    filters,
+    setFilters,
+    resetFilters,
+    presets,
+    savePreset,
+    applyPreset,
+    deletePreset,
+  } = useFilterPresets('airlines', defaultFilters);
 
   const filteredAirlines = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -51,9 +60,35 @@ export default function Airlines() {
     return rows;
   }, [airlines, filters]);
 
-  const resetFilters = () => setFilters({ q: '', short: '', hasLogo: 'all', sortBy: 'name-asc' });
-
   const openCreate = () => { setForm(emptyForm); setEditId(null); setShowModal(true); };
+
+  usePageShortcuts({
+    onCreate: openCreate,
+    onSearch: () => searchInputRef.current?.focus(),
+    onCloseModal: () => setShowModal(false),
+    modalOpen: showModal,
+  });
+
+  const {
+    page,
+    pageSize,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    paginatedItems,
+    setPage,
+    setPageSize,
+  } = usePagination(filteredAirlines, 10);
+
+  const exportRows = filteredAirlines.map((a) => ({
+    ID: a.id,
+    Name: a.name,
+    ShortName: a.shortName,
+    HasLogo: a.logo ? 'Yes' : 'No',
+    LogoUrl: a.logo || '',
+  }));
+
   const openEdit = (a) => { setForm({ name: a.name, shortName: a.shortName, logo: a.logo }); setEditId(a.id); setShowModal(true); };
 
   const handleSubmit = async () => {
@@ -67,8 +102,8 @@ export default function Airlines() {
         toast.success('Airline created!');
       }
       setShowModal(false);
-      load();
-    } catch { toast.error('Operation failed'); }
+      refetch();
+    } catch (error) { toast.error(getErrorMessage(error, 'Operation failed')); }
   };
 
   const handleDelete = async (id) => {
@@ -76,8 +111,8 @@ export default function Airlines() {
     try {
       await airlineService.delete(id);
       toast.success('Airline deleted');
-      load();
-    } catch { toast.error('Delete failed'); }
+      refetch();
+    } catch (error) { toast.error(getErrorMessage(error, 'Delete failed')); }
   };
 
   return (
@@ -99,10 +134,16 @@ export default function Airlines() {
       <div className="table-container">
         <div className="table-header">
           <span className="table-title">All Airlines</span>
+          <div className="table-tools">
+            <button className="btn btn-secondary btn-sm" onClick={() => exportToCsv('airlines', exportRows)}><Download size={13} /> CSV</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => exportToExcel('airlines', exportRows, 'Airlines')}><FileSpreadsheet size={13} /> Excel</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => exportTablePdf('airlines', 'Airlines Report', exportRows)}><FileDown size={13} /> PDF</button>
+          </div>
         </div>
         <div className="filters-wrap">
           <div className="filters-grid">
             <input
+              ref={searchInputRef}
               className="filter-input"
               placeholder="Search by airline name or short name..."
               value={filters.q}
@@ -142,9 +183,36 @@ export default function Airlines() {
             {filters.q && <span className="filter-chip">Query: <strong>{filters.q}</strong></span>}
             {filters.hasLogo !== 'all' && <span className="filter-chip">Logo: <strong>{filters.hasLogo}</strong></span>}
           </div>
+          <div className="filter-presets">
+            <input
+              className="filter-input"
+              placeholder="Preset name"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+            />
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                const saved = savePreset(presetName);
+                if (saved.ok) {
+                  toast.success('Preset saved');
+                  setPresetName('');
+                } else {
+                  toast.error(saved.reason);
+                }
+              }}
+            >Save Preset</button>
+            <select className="filter-select" defaultValue="" onChange={(e) => e.target.value && applyPreset(e.target.value)}>
+              <option value="">Apply preset</option>
+              {presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            {presets.length > 0 && (
+              <button className="btn btn-secondary btn-sm" onClick={() => deletePreset(presets[presets.length - 1].id)}>Delete Last Preset</button>
+            )}
+          </div>
         </div>
         {loading ? (
-          <div className="loading-screen"><div className="spinner" /></div>
+          <TableSkeleton rows={8} cols={5} />
         ) : (
           <table>
             <thead>
@@ -155,12 +223,15 @@ export default function Airlines() {
             <tbody>
               {filteredAirlines.length === 0 ? (
                 <tr><td colSpan={5}>
-                  <div className="empty-state">
-                    <Briefcase size={32} />
-                    <p>{airlines.length === 0 ? 'No airlines yet. Add your first one!' : 'No airline matches your filters.'}</p>
-                  </div>
+                  <EmptyState
+                    icon={<Briefcase size={32} />}
+                    title={airlines.length === 0 ? 'No airlines yet' : 'No airline matches your filters'}
+                    description={airlines.length === 0 ? 'Add your first airline to start building your network.' : 'Reset filters or create a new airline.'}
+                    ctaLabel={airlines.length === 0 ? 'Create Airline' : 'Reset Filters'}
+                    onCta={airlines.length === 0 ? openCreate : resetFilters}
+                  />
                 </td></tr>
-              ) : filteredAirlines.map(a => (
+              ) : paginatedItems.map(a => (
                 <tr key={a.id}>
                   <td>#{a.id}</td>
                   <td>
@@ -194,6 +265,16 @@ export default function Airlines() {
             </tbody>
           </table>
         )}
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       </div>
 
       {showModal && (
