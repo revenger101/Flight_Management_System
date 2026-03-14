@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -33,6 +34,22 @@ public class BookingDTO {
     private BookingStatus status;
     private String cancellationReason;
     private Long rebookedToFlightId;
+
+    private Double baseFare;
+    private Double finalFare;
+    private String currency;
+    private boolean refundable;
+    private Double changeFee;
+    private Integer includedBaggageKg;
+    private Integer baggageKg;
+    private Double extraBaggageFee;
+    private String campaignName;
+    private String promoCode;
+    private String corporateCode;
+    private String seatNumber;
+    private boolean checkedIn;
+    private LocalDateTime checkedInAt;
+    private String boardingPassCode;
 
     @NotNull(message = "passengerId is required")
     private Long passengerId;

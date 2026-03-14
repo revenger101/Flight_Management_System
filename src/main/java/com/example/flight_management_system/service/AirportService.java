@@ -30,6 +30,8 @@ public class AirportService {
                 .shortName(airport.getShortName())
                 .country(airport.getCountry())
                 .fee(airport.getFee())
+                .latitude(airport.getLatitude())
+                .longitude(airport.getLongitude())
                 .airlineId(airport.getAirline() != null ? airport.getAirline().getId() : null)
                 .build();
     }
@@ -45,6 +47,8 @@ public class AirportService {
                 .shortName(dto.getShortName())
                 .country(dto.getCountry())
                 .fee(dto.getFee())
+                .latitude(dto.getLatitude())
+                .longitude(dto.getLongitude())
                 .airline(airline)
                 .build();
     }
@@ -79,6 +83,8 @@ public class AirportService {
         existing.setShortName(dto.getShortName());
         existing.setCountry(dto.getCountry());
         existing.setFee(dto.getFee());
+        existing.setLatitude(dto.getLatitude());
+        existing.setLongitude(dto.getLongitude());
         if (dto.getAirlineId() != null) {
             Airline airline = airlineRepository.findById(dto.getAirlineId())
                     .orElseThrow(() -> new NotFoundException("Airline not found"));

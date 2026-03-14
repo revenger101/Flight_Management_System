@@ -41,4 +41,9 @@ public class Passenger {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<NotificationEvent> notificationEvents;
+
+    @OneToMany(mappedBy = "passenger", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<PassengerServiceRequest> serviceRequests;
 }

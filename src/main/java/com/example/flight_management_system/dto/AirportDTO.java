@@ -31,6 +31,9 @@ public class AirportDTO {
     @DecimalMin(value = "0.0", inclusive = true, message = "Fee must be >= 0")
     private float fee;
 
+    private Double latitude;
+    private Double longitude;
+
     @NotNull(message = "airlineId is required")
     private Long airlineId;
 }

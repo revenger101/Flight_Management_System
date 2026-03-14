@@ -1,5 +1,6 @@
 package com.example.flight_management_system.repository;
 
+import com.example.flight_management_system.entity.Aircraft;
 import com.example.flight_management_system.entity.Flight;
 import com.example.flight_management_system.entity.enums.FlightStatus;
 import jakarta.persistence.LockModeType;
@@ -30,4 +31,6 @@ public interface FlightRepository extends JpaRepository<Flight, Long> {
 	@Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
 	@Query("select f from Flight f where f.id = :id")
 	Optional<Flight> findWithLockById(@Param("id") Long id);
+
+	List<Flight> findByAircraft(Aircraft aircraft);
 }

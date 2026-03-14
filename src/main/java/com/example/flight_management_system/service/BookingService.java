@@ -1,6 +1,8 @@
 package com.example.flight_management_system.service;
 
 import com.example.flight_management_system.dto.BookingDTO;
+import com.example.flight_management_system.dto.PricingQuoteDTO;
+import com.example.flight_management_system.dto.PricingQuoteRequestDTO;
 import com.example.flight_management_system.dto.RebookRequestDTO;
 import com.example.flight_management_system.entity.Booking;
 import com.example.flight_management_system.entity.Flight;
@@ -33,6 +35,7 @@ public class BookingService {
     private final FlightRepository flightRepository;
     private final LoyaltyService loyaltyService;
     private final NotificationService notificationService;
+    private final PricingService pricingService;
 
     private BookingDTO toDTO(Booking b) {
         return BookingDTO.builder()
@@ -43,6 +46,21 @@ public class BookingService {
                 .status(b.getStatus())
                 .cancellationReason(b.getCancellationReason())
                 .rebookedToFlightId(b.getRebookedToFlightId())
+                .baseFare(b.getBaseFare())
+                .finalFare(b.getFinalFare())
+                .currency(b.getCurrency())
+                .refundable(b.isRefundable())
+                .changeFee(b.getChangeFee())
+                .includedBaggageKg(b.getIncludedBaggageKg())
+                .baggageKg(b.getBaggageKg())
+                .extraBaggageFee(b.getExtraBaggageFee())
+                .campaignName(b.getCampaignName())
+                .promoCode(b.getPromoCode())
+                .corporateCode(b.getCorporateCode())
+                .seatNumber(b.getSeatNumber())
+                .checkedIn(b.isCheckedIn())
+                .checkedInAt(b.getCheckedInAt())
+                .boardingPassCode(b.getBoardingPassCode())
                 .passengerId(b.getPassenger() != null ? b.getPassenger().getId() : null)
                 .flightId(b.getFlight() != null ? b.getFlight().getId() : null)
                 .build();
@@ -95,6 +113,14 @@ public class BookingService {
                 .orElseThrow(() -> new NotFoundException("Flight not found with id: " + dto.getFlightId()));
 
         BookingStatus bookingStatus = evaluateBookingStatus(flight);
+        PricingQuoteDTO quote = pricingService.quote(PricingQuoteRequestDTO.builder()
+            .flightId(flight.getId())
+            .travelDate(dto.getDate())
+            .bookingType(dto.getType())
+            .baggageKg(dto.getBaggageKg())
+            .promoCode(dto.getPromoCode())
+            .corporateCode(dto.getCorporateCode())
+            .build());
 
         Booking booking = Booking.builder()
                 .kind(dto.getKind())
@@ -102,11 +128,29 @@ public class BookingService {
                 .type(dto.getType())
                 .status(bookingStatus)
                 .idempotencyKey(idempotencyKey)
+            .baseFare(quote.getBaseFare())
+            .finalFare(quote.getFinalFare())
+            .currency(quote.getCurrency())
+            .refundable(quote.isRefundable())
+            .changeFee(quote.getChangeFee())
+            .includedBaggageKg(quote.getIncludedBaggageKg())
+            .baggageKg(quote.getRequestedBaggageKg())
+            .extraBaggageFee(quote.getExtraBaggageFee())
+            .campaignName(quote.getAppliedCampaign())
+            .promoCode(quote.getAppliedPromoCode())
+            .corporateCode(quote.getAppliedCorporateCode())
+                .seatNumber(dto.getSeatNumber())
+                .checkedIn(false)
+                .checkedInAt(null)
+                .boardingPassCode(null)
                 .passenger(passenger)
                 .flight(flight)
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+        if (quote.getAppliedPromoCode() != null && saved.getStatus() == BookingStatus.CONFIRMED) {
+            pricingService.markPromoCodeUsage(quote.getAppliedPromoCode());
+        }
         if (saved.getStatus() == BookingStatus.CONFIRMED) {
             loyaltyService.accrueMiles(passenger, saved, flight.getMiles(), "Flight booking accrual");
             passengerRepository.save(passenger);
@@ -127,6 +171,10 @@ public class BookingService {
 
         if (dto.getStatus() != null) {
             existing.setStatus(dto.getStatus());
+        }
+
+        if (dto.getSeatNumber() != null) {
+            existing.setSeatNumber(dto.getSeatNumber());
         }
 
         return toDTO(bookingRepository.save(existing));

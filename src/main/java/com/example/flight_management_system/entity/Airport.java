@@ -20,6 +20,8 @@ public class Airport {
     private String name;
     private String country;
     private float fee;
+    private Double latitude;
+    private Double longitude;
 
 
     @OneToOne

@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -37,8 +38,38 @@ public class Booking {
     @Column(length = 80, unique = true)
     private String idempotencyKey;
 
+    @Column(length = 8)
+    private String seatNumber;
+
+    private boolean checkedIn;
+    private LocalDateTime checkedInAt;
+
+    @Column(length = 80)
+    private String boardingPassCode;
+
     private String cancellationReason;
     private Long rebookedToFlightId;
+
+    private Double baseFare;
+    private Double finalFare;
+
+    @Column(length = 3)
+    private String currency;
+
+    private boolean refundable;
+    private Double changeFee;
+    private Integer includedBaggageKg;
+    private Integer baggageKg;
+    private Double extraBaggageFee;
+
+    @Column(length = 40)
+    private String promoCode;
+
+    @Column(length = 40)
+    private String corporateCode;
+
+    @Column(length = 80)
+    private String campaignName;
 
 
     @ManyToOne
@@ -55,4 +86,10 @@ public class Booking {
 
     @OneToMany(mappedBy = "booking")
     private java.util.List<NotificationEvent> notificationEvents;
+
+    @OneToMany(mappedBy = "booking")
+    private java.util.List<PassengerServiceRequest> serviceRequests;
+
+    @OneToMany(mappedBy = "booking")
+    private java.util.List<PaymentTransaction> paymentTransactions;
 }

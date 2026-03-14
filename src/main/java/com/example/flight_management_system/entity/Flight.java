@@ -4,6 +4,7 @@ import com.example.flight_management_system.entity.enums.FlightStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -31,6 +32,16 @@ public class Flight {
 
     @Enumerated(EnumType.STRING)
     private FlightStatus status;
+
+    private LocalDateTime scheduledDeparture;
+    private LocalDateTime scheduledArrival;
+
+    @Builder.Default
+    private int turnaroundMinutes = 45;
+
+    @ManyToOne
+    @JoinColumn(name = "aircraft_id")
+    private Aircraft aircraft;
 
 
     @OneToMany(cascade = CascadeType.ALL)
