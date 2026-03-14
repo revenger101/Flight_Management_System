@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import Layout from '../components/Layout';
-import { BookOpen, Plus, Trash2, X, RotateCcw, Pencil, CopyPlus, FileSpreadsheet, FileDown, Download } from 'lucide-react';
+import { BookOpen, Plus, Trash2, X, RotateCcw, Pencil, CopyPlus, FileSpreadsheet, FileDown, Download, Calculator } from 'lucide-react';
 import { bookingService } from '../services/bookingService';
+import { pricingService } from '../services/pricingService';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +18,16 @@ import EmptyState from '../components/EmptyState';
 import { getErrorMessage } from '../utils/errorUtils';
 import { bookingFormSchema } from '../validation/schemas';
 
-const emptyForm = { kind: 'One-way', date: '', type: 'ECONOMIC', passengerId: '', flightId: '' };
+const emptyForm = {
+  kind: 'One-way',
+  date: '',
+  type: 'ECONOMIC',
+  passengerId: '',
+  flightId: '',
+  baggageKg: '',
+  promoCode: '',
+  corporateCode: '',
+};
 const defaultFilters = {
   q: '',
   passengerId: 'all',
@@ -51,6 +61,7 @@ export default function Bookings() {
     register,
     handleSubmit: handleFormSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(bookingFormSchema),
@@ -67,6 +78,9 @@ export default function Bookings() {
   const getPassenger = (id) => passengers.find(p => p.id === id);
   const flightsWithOps = useMemo(() => withOpsAndCapacity(flights, bookings), [flights, bookings]);
   const getFlight = (id) => flightsWithOps.find(f => f.id === id);
+  const [quote, setQuote] = useState(null);
+  const [quoting, setQuoting] = useState(false);
+  const watchedForm = watch();
 
   const filteredBookings = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -123,7 +137,37 @@ export default function Bookings() {
     Type: b.type,
     Kind: b.kind,
     Date: b.date,
+    FinalFare: b.finalFare,
+    Currency: b.currency,
+    PromoCode: b.promoCode,
+    CorporateCode: b.corporateCode,
   }));
+
+  const handleQuote = async () => {
+    if (!watchedForm.flightId || !watchedForm.type || !watchedForm.date) {
+      toast.error('Select flight, class, and date first');
+      return;
+    }
+
+    try {
+      setQuoting(true);
+      const response = await pricingService.quote({
+        flightId: Number(watchedForm.flightId),
+        bookingType: watchedForm.type,
+        bookingDate: watchedForm.date,
+        baggageKg: watchedForm.baggageKg === '' ? null : Number(watchedForm.baggageKg),
+        promoCode: watchedForm.promoCode?.trim() || null,
+        corporateCode: watchedForm.corporateCode?.trim() || null,
+      });
+      setQuote(response.data);
+      toast.success('Quote generated');
+    } catch (error) {
+      setQuote(null);
+      toast.error(getErrorMessage(error, 'Failed to generate quote'));
+    } finally {
+      setQuoting(false);
+    }
+  };
 
   const handleSubmit = async (form) => {
 
@@ -159,7 +203,14 @@ export default function Bookings() {
     }
 
     try {
-      const payload = { ...form, passengerId: parseInt(form.passengerId), flightId: parseInt(form.flightId) };
+      const payload = {
+        ...form,
+        passengerId: parseInt(form.passengerId),
+        flightId: parseInt(form.flightId),
+        baggageKg: form.baggageKg === '' ? null : Number(form.baggageKg),
+        promoCode: form.promoCode?.trim() || null,
+        corporateCode: form.corporateCode?.trim() || null,
+      };
       if (editId) {
         await bookingService.update(editId, payload);
         toast.success('Booking updated!');
@@ -169,6 +220,7 @@ export default function Bookings() {
       }
       setShowModal(false); refetch();
       setEditId(null);
+      setQuote(null);
       reset(emptyForm);
     } catch (error) { toast.error(getErrorMessage(error, 'Failed')); }
   };
@@ -181,7 +233,11 @@ export default function Bookings() {
       type: b.type,
       passengerId: String(b.passengerId),
       flightId: String(b.flightId),
+      baggageKg: b.baggageKg ?? '',
+      promoCode: b.promoCode ?? '',
+      corporateCode: b.corporateCode ?? '',
     });
+    setQuote(null);
     setShowModal(true);
   };
 
@@ -197,7 +253,11 @@ export default function Bookings() {
       passengerId: String(b.passengerId),
       flightId: String(b.flightId),
       date: nextDate,
+      baggageKg: b.baggageKg ?? '',
+      promoCode: b.promoCode ?? '',
+      corporateCode: b.corporateCode ?? '',
     });
+    setQuote(null);
     setShowModal(true);
     toast.success('Rebook template loaded (date +7 days)');
   };
@@ -327,14 +387,14 @@ export default function Bookings() {
             </select>
           </div>
         </div>
-        {loading ? <TableSkeleton rows={10} cols={7} /> : (
+        {loading ? <TableSkeleton rows={10} cols={8} /> : (
           <table>
             <thead>
-              <tr><th>ID</th><th>Passenger</th><th>Flight</th><th>Type</th><th>Kind</th><th>Date</th><th>Actions</th></tr>
+              <tr><th>ID</th><th>Passenger</th><th>Flight</th><th>Type</th><th>Kind</th><th>Date</th><th>Pricing</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {filteredBookings.length === 0 ? (
-                <tr><td colSpan={7}>
+                <tr><td colSpan={8}>
                   <EmptyState
                     icon={<BookOpen size={32} />}
                     title={bookings.length === 0 ? 'No bookings yet' : 'No booking matches your filters'}
@@ -354,6 +414,20 @@ export default function Bookings() {
                     <td><span className={`badge ${b.type === 'BUSINESS' ? 'badge-gold' : 'badge-blue'}`}>{b.type}</span></td>
                     <td>{b.kind}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{b.date}</td>
+                    <td>
+                      {b.finalFare != null ? (
+                        <div className="pricing-cell">
+                          <strong>{b.currency || 'USD'} {Number(b.finalFare).toFixed(2)}</strong>
+                          {(b.promoCode || b.corporateCode || b.campaignName) && (
+                            <small>
+                              {[b.promoCode, b.corporateCode, b.campaignName].filter(Boolean).join(' | ')}
+                            </small>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>N/A</span>
+                      )}
+                    </td>
                     <td>
                       <div className="action-buttons">
                         <button className="btn btn-secondary btn-sm" onClick={() => openEdit(b)}><Pencil size={13} /></button>
@@ -384,7 +458,7 @@ export default function Bookings() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">{editId ? `Edit Booking #${editId}` : 'New Booking'}</span>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={16} /></button>
+              <button className="modal-close" onClick={() => { setShowModal(false); setQuote(null); }}><X size={16} /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">
@@ -424,9 +498,43 @@ export default function Bookings() {
                 <input className="form-input" type="date" {...register('date')} />
                 {errors.date && <small style={{ color: 'var(--danger)' }}>{errors.date.message}</small>}
               </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Baggage (kg)</label>
+                  <input className="form-input" type="number" min="0" step="1" placeholder="Optional" {...register('baggageKg')} />
+                  {errors.baggageKg && <small style={{ color: 'var(--danger)' }}>{errors.baggageKg.message}</small>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Promo Code</label>
+                  <input className="form-input" type="text" placeholder="Optional" {...register('promoCode')} />
+                  {errors.promoCode && <small style={{ color: 'var(--danger)' }}>{errors.promoCode.message}</small>}
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Corporate Code</label>
+                <input className="form-input" type="text" placeholder="Optional" {...register('corporateCode')} />
+                {errors.corporateCode && <small style={{ color: 'var(--danger)' }}>{errors.corporateCode.message}</small>}
+              </div>
+
+              <div className="quote-panel">
+                <button className="btn btn-secondary" type="button" onClick={handleQuote} disabled={quoting}>
+                  <Calculator size={14} /> {quoting ? 'Quoting...' : 'Preview Quote'}
+                </button>
+                {quote && (
+                  <div className="quote-panel-details">
+                    <p><strong>Base:</strong> {quote.currency} {Number(quote.baseFare || 0).toFixed(2)}</p>
+                    <p><strong>Final:</strong> {quote.currency} {Number(quote.finalFare || 0).toFixed(2)}</p>
+                    <p><strong>Baggage:</strong> Included {quote.includedBaggageKg}kg, selected {quote.baggageKg}kg, extra fee {quote.currency} {Number(quote.extraBaggageFee || 0).toFixed(2)}</p>
+                    <p><strong>Rules:</strong> {quote.refundable ? 'Refundable' : 'Non-refundable'} {quote.changeFee != null ? `| Change fee ${quote.currency} ${Number(quote.changeFee).toFixed(2)}` : ''}</p>
+                    {(quote.promoCode || quote.corporateCode || quote.campaignName) && (
+                      <p><strong>Applied:</strong> {[quote.promoCode, quote.corporateCode, quote.campaignName].filter(Boolean).join(' | ')}</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="btn btn-secondary" onClick={() => { setShowModal(false); setQuote(null); }}>Cancel</button>
               <button className="btn btn-primary" onClick={handleFormSubmit(handleSubmit)}>{editId ? 'Save Changes' : 'Create Booking'}</button>
             </div>
           </div>

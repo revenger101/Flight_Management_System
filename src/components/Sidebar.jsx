@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Plane, Building2, Users,
-  BookOpen, Briefcase, Wifi, ChevronsUpDown, LogOut
+  BookOpen, Briefcase, Wifi, ChevronsUpDown, LogOut, DollarSign,
+  Activity, Calendar, UserRound, Landmark, ShieldCheck, LifeBuoy, Globe,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +14,9 @@ const navigationSections = [
       { to: '/flights', icon: Plane, label: 'Flights' },
       { to: '/passengers', icon: Users, label: 'Passengers' },
       { to: '/bookings', icon: BookOpen, label: 'Bookings' },
+      { to: '/portal', icon: UserRound, label: 'Passenger Portal' },
+      { to: '/support', icon: LifeBuoy, label: 'Support Center' },
+      { to: '/tracking', icon: Globe, label: 'Live World Map' },
     ],
   },
   {
@@ -20,6 +24,16 @@ const navigationSections = [
     items: [
       { to: '/airports', icon: Building2, label: 'Airports', roles: ['ADMIN'] },
       { to: '/airlines', icon: Briefcase, label: 'Airlines', roles: ['ADMIN'] },
+      { to: '/pricing', icon: DollarSign, label: 'Pricing', roles: ['ADMIN'] },
+      { to: '/finance', icon: Landmark, label: 'Finance Center', roles: ['ADMIN'] },
+      { to: '/workflow', icon: ShieldCheck, label: 'Workflow Engine', roles: ['ADMIN'] },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { to: '/operations', icon: Activity, label: 'Operations Control' },
+      { to: '/scheduling', icon: Calendar, label: 'Scheduling', roles: ['ADMIN'] },
     ],
   },
 ];

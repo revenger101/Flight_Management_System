@@ -1,3 +1,10 @@
+import OperationsControl from './pages/OperationsControl';
+import Scheduling from './pages/Scheduling';
+import PassengerPortal from './pages/PassengerPortal';
+import FinanceCenter from './pages/FinanceCenter';
+import WorkflowEngine from './pages/WorkflowEngine';
+import SupportCenter from './pages/SupportCenter';
+import LiveFlightMap from './pages/LiveFlightMap';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Dashboard from './pages/Dashboard';
@@ -6,6 +13,7 @@ import Airports from './pages/Airports';
 import Flights from './pages/Flights';
 import Passengers from './pages/Passengers';
 import Bookings from './pages/Bookings';
+import PricingAdmin from './pages/PricingAdmin';
 import FlightDetails from './pages/FlightDetails';
 import PassengerDetails from './pages/PassengerDetails';
 import Login from './pages/Login';
@@ -104,6 +112,70 @@ export default function App() {
               element={(
                 <ProtectedRoute>
                   <Bookings />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/pricing"
+              element={(
+                <RoleProtectedRoute allowedRoles={['ADMIN']}>
+                  <PricingAdmin />
+                </RoleProtectedRoute>
+              )}
+            />
+            <Route
+              path="/operations"
+              element={(
+                <ProtectedRoute>
+                  <OperationsControl />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/scheduling"
+              element={(
+                <RoleProtectedRoute allowedRoles={['ADMIN']}>
+                  <Scheduling />
+                </RoleProtectedRoute>
+              )}
+            />
+            <Route
+              path="/portal"
+              element={(
+                <ProtectedRoute>
+                  <PassengerPortal />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/finance"
+              element={(
+                <RoleProtectedRoute allowedRoles={['ADMIN']}>
+                  <FinanceCenter />
+                </RoleProtectedRoute>
+              )}
+            />
+            <Route
+              path="/workflow"
+              element={(
+                <RoleProtectedRoute allowedRoles={['ADMIN']}>
+                  <WorkflowEngine />
+                </RoleProtectedRoute>
+              )}
+            />
+            <Route
+              path="/support"
+              element={(
+                <ProtectedRoute>
+                  <SupportCenter />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/tracking"
+              element={(
+                <ProtectedRoute>
+                  <LiveFlightMap />
                 </ProtectedRoute>
               )}
             />
